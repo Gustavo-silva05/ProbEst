@@ -1,4 +1,6 @@
-const pupe = require('puppeteer-core');
+// const pupe = require('puppeteer-core');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const chromium = require("@sparticuz/chromium");
 // const dayjs = require("dayjs");
 const express = require("express");
@@ -13,10 +15,12 @@ const height = 600;
 
 const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
 
+puppeteer.use(StealthPlugin());
+
 async function main() {
     const IS_LOCAL = true;
     let path = await chromium.executablePath()
-    const browser = await pupe.launch({
+    const browser = await puppeteer.launch({
         args: IS_LOCAL ? [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -43,8 +47,18 @@ async function main() {
 
     const page = await browser.newPage();
     await page.goto('https://www.fx-rate.net/historical/');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
-    // Extraia os dados da tabela
+
+    // Preencha o formulário
+    await page.select('select.ip_currency_from', 'USD');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Seleciona "Real Brasileiro - BRL" no campo "Currency To"
+    await page.select('select.ip_currency_to', 'BRL');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
     const tableData = await page.evaluate(() => {
         const rows = document.querySelectorAll('table tr');
         let data = [];
