@@ -2,6 +2,9 @@ const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const chromium = require("@sparticuz/chromium");
 const express = require("express");
+const dayjs = require("dayjs");
+const customParseFormat = require('dayjs/plugin/customParseFormat');
+dayjs.extend(customParseFormat);
 const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
 const fs = require('fs');
 const path = require('path');
@@ -76,8 +79,43 @@ async function main(coin) {
     });
 
     let data = tableData.slice(7);
-    // console.log(data);
+
+    data.forEach(d => {
+        const data = `${d[0].slice(0,5)}-20${d[0].slice(6)}`
+        d[0] = data;
+    })
+
+    data.sort((acc, val) => dayjs(acc[0], "DD-MM-YYYY").valueOf() - dayjs(val[0], "DD-MM-YYYY").valueOf());
+
+    let mediaAr = data.reduce((acc, val) => acc + parseFloat(val[1].replace(",", ".")), 0);
+    console.log("total: ", mediaAr , "n de elementos:", data.length);
+    mediaAr /= data.length;
+    console.log("media: ", mediaAr);
+
+    let array = []
+    data.forEach(d => {
+        let obj = array.find(o => o[1] == d[1]);
+        if (obj) {
+            obj[0]++;
+        } else {
+            array.push(1, d[1]);
+        }
+    })
+
+    let moda = array.sort((acc, val) => val[0] - acc[0])[1];
+    console.log("moda: ",moda);
+
+    let array_mediana = data.map(x => parseFloat(x[1].replace(",", ".")));
+    array_mediana.sort((acc, val) => acc - val);
+    let mediana = 0;
+    if (data.length % 2 == 0) {
+        mediana = (array_mediana[data.length / 2] + array_mediana[data.length / 2 + 1]) / 2; 
+    }else{
+        mediana = array_mediana[data.length / 2 + 1];
+    }
+    console.log("mediana: ",mediana);
     await browser.close();
+    fs.writeFileSync('arquivo.txt', data.join('\n'));
     return data;
 }
 async function generateChart(data) {
@@ -111,6 +149,7 @@ app.get("/grafico", async (req, res) => {
     let chartPaths = [];
 
     for (let i = 0; i < coin.length; i++) {
+        console.log(coin[i]);
         const data = await main(coin[i]);
         const image = await generateChart(data);
         const filePath = path.join(__dirname, `chart${coin[i]}.png`);
