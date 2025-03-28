@@ -18,10 +18,68 @@ const height = 900;
 
 const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
 
+function MTC (data) {
+    let mediaAr = data.reduce((acc, val) => acc + parseFloat(val[1].replace(",", ".")), 0);
+    console.log("total: ", mediaAr , "n de elementos:", data.length);
+    mediaAr /= data.length;
+    console.log("media: ", mediaAr);
+
+    let array = []
+    data.forEach(d => {
+        let obj = array.find(o => o[1] == d[1]);
+        if (obj) {
+            obj[0]++;
+        } else {
+            array.push(1, d[1]);
+        }
+    })
+
+    let moda = array.sort((acc, val) => val[0] - acc[0])[1];
+    console.log("moda: ",moda);
+
+    let array_mediana = data.map(x => parseFloat(x[1].replace(",", ".")));
+    array_mediana.sort((acc, val) => acc - val);
+    let mediana = 0;
+    if (data.length % 2 == 0) {
+        mediana = (array_mediana[data.length / 2] + array_mediana[data.length / 2 + 1]) / 2; 
+    }else{
+        mediana = array_mediana[data.length / 2 + 1];
+    }
+    console.log("mediana: ",mediana);
+}
+
+function Variabilty(data){
+    let max = data.reduce((acc, val) => acc > parseFloat(val[1].replace(",", ".")) ? acc : parseFloat(val[1].replace(",", ".")), data[0][1]);
+    let min = data.reduce((acc, val) => acc < parseFloat(val[1].replace(",", ".")) ? acc : parseFloat(val[1].replace(",", ".")), data[0][1]);
+    console.log("max: ",max);
+    console.log("min: ",min);
+    console.log("R", max-min);
+
+
+    let variabilidade = 0;
+    let media = data.reduce((acc, val) => acc + parseFloat(val[1].replace(",", ".")), 0)/ data.length;
+    data.forEach(d => {
+        // console.log(Math.pow(media - parseFloat(d[1].replace(",", ".")), 2));
+        variabilidade += Math.pow(media - parseFloat(d[1].replace(",", ".")), 2);
+    })
+
+    console.log("Variancia numerador: ",variabilidade);
+    variabilidade = variabilidade / (data.length-1);
+    console.log("Variancia: ",variabilidade);
+
+    let desvioPadrao = Math.sqrt(variabilidade);
+    console.log('desvio padrao: ',desvioPadrao);
+    console.log('desvio padrao(%): ',desvioPadrao*100,"%");
+
+    let coeficienteVariabilidade = desvioPadrao / media*100;
+    console.log('cv: ',coeficienteVariabilidade,'%');
+
+}
+
 puppeteer.use(StealthPlugin());
 
 async function main(coin) {
-    const IS_LOCAL = true;
+    const IS_LOCAL = false;
     let path = await chromium.executablePath()
     const browser = await puppeteer.launch({
         args: IS_LOCAL ? [
@@ -51,17 +109,17 @@ async function main(coin) {
 
     const page = await browser.newPage();
     await page.goto('https://www.fx-rate.net/historical/');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
 
 
     // Preencha o formulário
     await page.select('select.ip_currency_from', 'USD');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Seleciona "Real Brasileiro - BRL" no campo "Currency To"
     await page.select('select.ip_currency_to', coin);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
     const tableData = await page.evaluate(() => {
         const rows = document.querySelectorAll('table tr');
@@ -86,38 +144,17 @@ async function main(coin) {
     })
 
     data.sort((acc, val) => dayjs(acc[0], "DD-MM-YYYY").valueOf() - dayjs(val[0], "DD-MM-YYYY").valueOf());
-
-    let mediaAr = data.reduce((acc, val) => acc + parseFloat(val[1].replace(",", ".")), 0);
-    console.log("total: ", mediaAr , "n de elementos:", data.length);
-    mediaAr /= data.length;
-    console.log("media: ", mediaAr);
-
-    let array = []
-    data.forEach(d => {
-        let obj = array.find(o => o[1] == d[1]);
-        if (obj) {
-            obj[0]++;
-        } else {
-            array.push(1, d[1]);
-        }
-    })
-
-    let moda = array.sort((acc, val) => val[0] - acc[0])[1];
-    console.log("moda: ",moda);
-
-    let array_mediana = data.map(x => parseFloat(x[1].replace(",", ".")));
-    array_mediana.sort((acc, val) => acc - val);
-    let mediana = 0;
-    if (data.length % 2 == 0) {
-        mediana = (array_mediana[data.length / 2] + array_mediana[data.length / 2 + 1]) / 2; 
-    }else{
-        mediana = array_mediana[data.length / 2 + 1];
-    }
-    console.log("mediana: ",mediana);
+    MTC(data);
+    Variabilty(data)
     await browser.close();
     fs.writeFileSync('arquivo.txt', data.join('\n'));
     return data;
 }
+
+
+
+
+
 async function generateChart(data) {
     const configuration = {
         type: "line",
@@ -157,7 +194,7 @@ app.get("/grafico", async (req, res) => {
         // Salvar a imagem no servidor
         fs.writeFileSync(filePath, image);
         chartPaths.push(`/images/chart${coin[i]}.png`);
-        console.log(`Imagem pronta: ${coin[i]}`);
+        console.log(`Imagem pronta: ${coin[i]}\n`);
     }
 
     // Enviar links para as imagens geradas

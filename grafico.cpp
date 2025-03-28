@@ -54,10 +54,10 @@ vector<dado> leitura(){
 int main()
 {
     vector<dado> dados = leitura();
-    for (int i = 0; i < dados.size(); i++)
-    {
-        cout << dados[i].data << " " << dados[i].cotacao << endl;
-    }
+    // for (int i = 0; i < dados.size(); i++)
+    // {
+    //     cout << dados[i].data << " " << dados[i].cotacao << endl;
+    // }
     // if (SDL_Init(SDL_INIT_VIDEO) < 0)
     // {
     //     std::cerr << "Erro ao inicializar SDL: " << SDL_GetError() << std::endl;
