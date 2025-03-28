@@ -13,7 +13,7 @@ c: grafico.c
 	$(M) run
 
 c+: grafico.cpp 
-	g++ grafico.cpp -o grafico -lSDL2 $(CXXFLAGS)
+	g++ grafico.cpp -o grafico -lSDL2 -lSDL2_ttf $(CXXFLAGS)
 	$(M) run
 
 run: 
